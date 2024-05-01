@@ -12,6 +12,10 @@ public enum NetworkError: Error {
 //MARK: - Network Get Request
 
 public class NetworkService {
+    
+    public init() {
+        }
+        
     public func getData<T: Decodable>(urlString: String, completion: @escaping (T?,Error?) ->(Void)) {
         var tryCount = 0
         let url = URL(string: urlString)!
