@@ -4,7 +4,7 @@ You can use this package to make network calls and decode response JSON with you
 
 ### Installation
 
-Network-Package-TE is a publicly available package accessible through Swift Package Manager.
+NetworkPackage is a publicly available package accessible through Swift Package Manager.
 
 To install it:
 
