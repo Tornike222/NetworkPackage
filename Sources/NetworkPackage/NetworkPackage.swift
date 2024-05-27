@@ -11,14 +11,13 @@ public enum NetworkError: Error {
     case decodeError
     
 }
-//MARK: - Network Get Request
+//MARK: - Network Request Service
 
 public class NetworkService {
     
     public init() { }
     
-    public func getData<T: Decodable>(urlString: String, headers: [String: String]? = nil, completion: @escaping (T?, Error?) -> Void) {
-
+    public func requestData<T: Decodable>(urlString: String, method: String = "GET", headers: [String: String]? = nil, body: Data? = nil, completion: @escaping (T?, Error?) -> Void) {
         guard let url = URL(string: urlString) else {
             print("Invalid URL")
             completion(nil, NetworkError.invalidResponse)
@@ -26,12 +25,16 @@ public class NetworkService {
         }
         
         var request = URLRequest(url: url)
-        request.httpMethod = "GET"
+        request.httpMethod = method
         
         if let headers = headers {
             for (key, value) in headers {
                 request.addValue(value, forHTTPHeaderField: key)
             }
+        }
+        
+        if let body = body {
+            request.httpBody = body
         }
         
         URLSession.shared.dataTask(with: request) { data, response, error in
