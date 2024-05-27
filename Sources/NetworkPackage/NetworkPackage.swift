@@ -17,14 +17,30 @@ public class NetworkService {
     
     public init() { }
     
-    public func getData<T: Decodable>(urlString: String, completion: @escaping (T?, Error?) -> Void) {
-        let url = URL(string: urlString)!
-        URLSession.shared.dataTask(with: url) { data, response, error in
+    public func getData<T: Decodable>(urlString: String, headers: [String: String]? = nil, completion: @escaping (T?, Error?) -> Void) {
+
+        guard let url = URL(string: urlString) else {
+            print("Invalid URL")
+            completion(nil, NetworkError.invalidResponse)
+            return
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        
+        if let headers = headers {
+            for (key, value) in headers {
+                request.addValue(value, forHTTPHeaderField: key)
+            }
+        }
+        
+        URLSession.shared.dataTask(with: request) { data, response, error in
             if let error = error {
                 print("Network error: \(error.localizedDescription)")
                 completion(nil, error)
                 return
             }
+            
             
             guard let httpResponse = response as? HTTPURLResponse else {
                 let invalidResponseError = NetworkError.invalidResponse
