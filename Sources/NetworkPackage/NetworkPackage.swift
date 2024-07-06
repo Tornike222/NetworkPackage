@@ -1,64 +1,77 @@
 // The Swift Programming Language
 // https://docs.swift.org/swift-book
-
+//
+//  NetworkManager.swift
+//  GeliStore
+//
+//  Created by telkanishvili on 06.07.24.
+//
 
 import Foundation
 
+// Enum for Network Errors
 public enum NetworkError: Error {
     case invalidResponse
     case httpError(code: Int)
     case noData
     case decodeError
-    
 }
-//MARK: - Network Request Service
 
+// Enum for HTTP Methods
+public enum HTTPMethod: String {
+    case get = "GET"
+    case post = "POST"
+    case put = "PUT"
+    case delete = "DELETE"
+    case patch = "PATCH"
+}
+
+//MARK: - Network Request Service
 public class NetworkService {
-    
+
     public init() { }
-    
-    public func requestData<T: Decodable>(urlString: String, method: String = "GET", headers: [String: String]? = nil, body: Data? = nil, completion: @escaping (T?, Error?) -> Void) {
+
+    public func requestData<T: Decodable>(urlString: String, method: HTTPMethod = .get, headers: [String: String]? = nil, body: Data? = nil, completion: @escaping (T?, Error?) -> Void) {
         guard let url = URL(string: urlString) else {
             print("Invalid URL")
             completion(nil, NetworkError.invalidResponse)
             return
         }
-        
+
         var request = URLRequest(url: url)
-        request.httpMethod = method
-        
+        request.httpMethod = method.rawValue
+
         if let headers = headers {
             for (key, value) in headers {
                 request.addValue(value, forHTTPHeaderField: key)
             }
         }
-        
+
         if let body = body {
             request.httpBody = body
         }
-        
+
         URLSession.shared.dataTask(with: request) { data, response, error in
             if let error = error {
                 print("Network error: \(error.localizedDescription)")
                 completion(nil, error)
                 return
             }
-            
-            
+
             guard let httpResponse = response as? HTTPURLResponse else {
                 let invalidResponseError = NetworkError.invalidResponse
                 print("Invalid response")
                 completion(nil, invalidResponseError)
                 return
             }
-            
+
             guard (200...299).contains(httpResponse.statusCode) else {
                 let httpError = NetworkError.httpError(code: httpResponse.statusCode)
                 print("HTTP error: \(httpResponse.statusCode)")
                 completion(nil, httpError)
                 return
             }
-            
+
             guard let data = data else {
                 let noDataError = NetworkError.noData
                 print("No data")
