@@ -23,23 +23,14 @@ public enum HTTPMethod: String {
     case patch = "PATCH"
 }
 
-public struct EmptyResponse: Decodable {
-    // it represents an empty response
-}
-
 public class NetworkService {
 
     public init() { }
 
-    public func requestData<T: Decodable>(
-        urlString: String,
-        method: HTTPMethod = .get,
-        headers: [String: String]? = nil,
-        body: Data? = nil,
-        completion: @escaping (Result<T, Error>) -> Void
-    ) {
+    public func requestData(urlString: String, method: HTTPMethod = .get, headers: [String: String]? = nil, body: Data? = nil, completion: @escaping ([String: Any]?, Error?) -> Void) {
         guard let url = URL(string: urlString) else {
-            completion(.failure(NetworkError.invalidResponse))
+            print("Invalid URL")
+            completion(nil, NetworkError.invalidResponse)
             return
         }
 
@@ -58,50 +49,38 @@ public class NetworkService {
 
         URLSession.shared.dataTask(with: request) { data, response, error in
             if let error = error {
-                completion(.failure(error))
+                print("Network error: \(error.localizedDescription)")
+                completion(nil, error)
                 return
             }
 
             guard let httpResponse = response as? HTTPURLResponse else {
-                completion(.failure(NetworkError.invalidResponse))
+                let invalidResponseError = NetworkError.invalidResponse
+                print("Invalid response")
+                completion(nil, invalidResponseError)
                 return
             }
 
             guard (200...299).contains(httpResponse.statusCode) else {
-                completion(.failure(NetworkError.httpError(code: httpResponse.statusCode)))
+                let httpError = NetworkError.httpError(code: httpResponse.statusCode)
+                print("HTTP error: \(httpResponse.statusCode)")
+                completion(nil, httpError)
                 return
             }
 
-            if method == .post {
-                if T.self == EmptyResponse.self {
-                    completion(.success(EmptyResponse() as! T))
-                } else {
-                    guard let data = data else {
-                        completion(.failure(NetworkError.noData))
-                        return
-                    }
+            guard let data = data else {
+                let noDataError = NetworkError.noData
+                print("No data")
+                completion(nil, noDataError)
+                return
+            }
 
-                    do {
-                        let decoder = JSONDecoder()
-                        let object = try decoder.decode(T.self, from: data)
-                        completion(.success(object))
-                    } catch {
-                        completion(.failure(NetworkError.decodeError))
-                    }
-                }
-            } else {
-                guard let data = data else {
-                    completion(.failure(NetworkError.noData))
-                    return
-                }
-
-                do {
-                    let decoder = JSONDecoder()
-                    let object = try decoder.decode(T.self, from: data)
-                    completion(.success(object))
-                } catch {
-                    completion(.failure(NetworkError.decodeError))
-                }
+            do {
+                let json = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any]
+                completion(json, nil)
+            } catch {
+                print("Error decoding data:", error)
+                completion(nil, NetworkError.decodeError)
             }
         }.resume()
     }
