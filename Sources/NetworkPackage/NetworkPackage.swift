@@ -18,16 +18,14 @@ public enum NetworkError: Error {
 public enum HTTPMethod: String {
     case get = "GET"
     case post = "POST"
-    case put = "PUT"
-    case delete = "DELETE"
-    case patch = "PATCH"
+    // Add other HTTP methods as needed
 }
 
 public class NetworkService {
 
     public init() { }
 
-    public func requestData(urlString: String, method: HTTPMethod = .get, headers: [String: String]? = nil, body: Data? = nil, completion: @escaping ([String: Any]?, Error?) -> Void) {
+    public func requestData<T: Decodable>(urlString: String, method: HTTPMethod = .get, headers: [String: String]? = nil, body: Data? = nil, completion: @escaping (T?, Error?) -> Void) {
         guard let url = URL(string: urlString) else {
             print("Invalid URL")
             completion(nil, NetworkError.invalidResponse)
@@ -75,13 +73,26 @@ public class NetworkService {
                 return
             }
 
-            do {
-                let json = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any]
-                completion(json, nil)
-            } catch {
-                print("Error decoding data:", error)
-                completion(nil, NetworkError.decodeError)
+            if T.self == EmptyResponse.self {
+                // For EmptyResponse, simply call completion with nil for both parameters
+                DispatchQueue.main.async {
+                    completion(nil, nil)
+                }
+            } else {
+                do {
+                    let decoder = JSONDecoder()
+                    let object = try decoder.decode(T.self, from: data)
+                    DispatchQueue.main.async {
+                        completion(object, nil)
+                    }
+                } catch {
+                    print("Error decoding data:", error)
+                    completion(nil, NetworkError.decodeError)
+                }
             }
         }.resume()
     }
 }
+
+// EmptyResponse type to represent a response with no data
+public struct EmptyResponse: Decodable {}
