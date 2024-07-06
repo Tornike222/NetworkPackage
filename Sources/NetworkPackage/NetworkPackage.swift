@@ -23,6 +23,10 @@ public enum HTTPMethod: String {
     case patch = "PATCH"
 }
 
+public struct EmptyResponse: Decodable {
+    // it represents an empty response
+}
+
 public class NetworkService {
 
     public init() { }
